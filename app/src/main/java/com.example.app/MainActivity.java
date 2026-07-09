@@ -1,4 +1,4 @@
-package com.example.app;
+package com.sarc.app;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -45,16 +45,11 @@ public class MainActivity extends Activity {
         });
 
         // REMOTE RESOURCE
-        mWebView.loadUrl(getString(R.string.web_url));
-    }
-
-
-    @Override
-    public void onBackPressed() {
-        if(mWebView.canGoBack()) {
-            mWebView.goBack();
-        } else {
-            super.onBackPressed();
-        }
+        WebView webView=findViewById(R.id.webview);
+        
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setDomStorageEnabled(true);
+        
+        webView.loadUrl("file:///android_asset/index.html");
     }
 }
