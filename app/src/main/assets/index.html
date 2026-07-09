@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SARC - سامانه اختصاصی رمزنگاری و پنهان‌نگاری فوق پیشرفته</title>
+    <!-- Tailwind CSS -->
+    <script src="cdn.js"></script>
+    <!-- Fonts for Cyber/Persian look -->
+    <link href="fonts.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: radial-gradient(circle at center, #0b0f19 0%, #030712 100%);
+            touch-action: manipulation;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6;
+        }
+        /* Glassmorphism */
+        .cyber-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .cyber-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        /* Glowing effects */
+        .glow-blue {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        .glow-emerald {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        .glow-pink {
+            text-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+        }
+        /* Custom Keyframes */
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scan-line::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(to bottom, transparent, #3b82f6, transparent);
+            animation: scan 3s linear infinite;
+            opacity: 0.4;
+        }
+        /* Toast style */
+        .toast-animate {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(100%) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col antialiased">
+
+    <!-- Toast Notification Container (Floating) -->
+    <div id="toastContainer" class="fixed bottom-5 left-5 right-5 md:left-auto md:right-5 md:max-w-md z-50 flex flex-col gap-2.5 pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3 md:px-6 md:py-4">
+        <div class="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row justify-between items-center">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-base md:text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-l from-blue-400 to-indigo-200">پلتفرم پنهان‌نگاری پیشرفته SARC</h1>
+                    <p class="text-[10px] md:text-xs text-slate-400">سیستم فوق امن کانتینرهای رمزنگاری شده و خودتخریب گر</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                <!-- Self destruct countdown badge -->
+                <div id="destructBadge" class="hidden items-center gap-2 bg-rose-950/30 border border-rose-900/50 px-3 py-1.5 rounded-full text-xs text-rose-400">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                    <span>خودتخریبی داده در: </span>
+                    <span id="destructCountdown" class="font-bold code-font">00:00</span>
+                </div>
+
+                <!-- Entropy counter -->
+                <div class="text-[10px] md:text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full text-slate-300">
+                    <span>امنیت محیطی: </span>
+                    <span id="entropyProgress" class="font-bold text-blue-400 code-font">0%</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+        
+        <!-- Tab Navigation & Main Control (Left 8 Columns) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Quick Alert / Notice -->
+            <div class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-4 flex gap-3 items-start">
+                <svg class="w-5 h-5 text-blue-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="text-xs text-slate-300 leading-relaxed">
+                    <strong>امنیت مطلق سمت کاربر:</strong> برای تضمین ۱۰۰٪ امنیت در نرم افزار، هیچ کلید، لاگ یا اطلاعات کاربری به ابر فرستاده نمی‌شود. اطلاعات آفلاین شما فقط در پایگاه داده محلی موقت ثبت شده و به انتخاب شما به صورت فیزیکی از روی رم دستگاه پاک و نابود خواهد شد.
+                </div>
+            </div>
+
+            <!-- Tab Switcher (Fully responsive grid on mobile) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 p-1 bg-slate-950/80 border border-slate-800 rounded-xl gap-1">
+                <button onclick="switchTab('file-enc')" id="tab-file-enc" class="tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 bg-blue-600 text-white min-h-[44px]">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    ایجاد SARC
+                </button>
+                <button onclick="switchTab('file-dec')" id="tab-file-dec" class="tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 text-slate-400 hover:text-white min-h-[44px]">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                    استخراج SARC
+                </button>
+                <button onclick="switchTab('steg')" id="tab-steg" class="tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 text-slate-400 hover:text-white min-h-[44px]">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    پنهان‌نگاری تصویری
+                </button>
+                <button onclick="switchTab('text-crypt')" id="tab-text-crypt" class="tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 text-slate-400 hover:text-white min-h-[44px]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                    امن‌ساز متون
+                </button>
+            </div>
+
+            <!-- WORKSPACE PANELS -->
+            <div class="cyber-card rounded-2xl p-4 md:p-6 min-h-[400px] flex flex-col justify-between relative overflow-hidden">
+                
+                <!-- Panel 1: Encrypt Files (Create SARC) -->
+                <div id="panel-file-enc" class="tab-panel flex flex-col gap-5">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm md:text-lg font-bold text-blue-400 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            ایجاد آرشیو چندرسانه‌ای با پسوند اختصاصی <span class="code-font text-white bg-slate-800 px-2 py-0.5 rounded text-xs md:text-sm">.sarc</span>
+                        </h3>
+                    </div>
+
+                    <!-- File Dropzone (With touch target optimization) -->
+                    <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-6 md:p-10 text-center cursor-pointer transition-colors relative bg-slate-900/40">
+                        <input type="file" id="fileInput" class="hidden" multiple>
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-slate-950/60 rounded-full text-slate-400 border border-slate-800">
+                                <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-200">فایل‌ها را انتخاب کنید یا بکشید</span>
+                            <span class="text-[10px] md:text-xs text-slate-400">امکان انتخاب چندین فایل مختلف برای قفل‌گذاری و آرشیو همزمان وجود دارد.</span>
+                        </div>
+                    </div>
+
+                    <!-- Selected Files List -->
+                    <div id="selectedFilesContainer" class="hidden">
+                        <h4 class="text-xs font-bold text-slate-400 mb-2">فایل‌های آماده برای آرشیو و قفل‌گذاری:</h4>
+                        <div id="selectedFilesList" class="max-h-40 overflow-y-auto space-y-2 bg-slate-950/50 p-3 rounded-lg border border-slate-800">
+                            <!-- File list items -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Decrypt SARC -->
+                <div id="panel-file-dec" class="tab-panel hidden flex flex-col gap-5">
+                    <h3 class="text-sm md:text-lg font-bold text-emerald-400 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        رمزگشایی و بازنشانی ساختار کانتینر SARC
+                    </h3>
+
+                    <!-- SARC File Upload -->
+                    <div id="dec-dropzone" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-xl p-6 md:p-10 text-center cursor-pointer transition-colors relative bg-slate-900/40">
+                        <input type="file" id="sarcFileInput" class="hidden" accept=".sarc">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-slate-950/60 rounded-full text-slate-400 border border-slate-800">
+                                <svg class="w-8 h-8 md:w-10 md:h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-200">فایل با پسوند <span class="code-font text-emerald-400 font-bold">.sarc</span> را انتخاب کنید</span>
+                            <span class="text-[10px] md:text-xs text-slate-400" id="sarcFileInfo">سیستم پس از دریافت رمز عبور، فایل‌ها را تفکیک و استخراج می‌کند.</span>
+                        </div>
+                    </div>
+
+                    <!-- Extracted Files Preview -->
+                    <div id="extractedSection" class="hidden bg-slate-950/50 p-4 rounded-xl border border-emerald-900/30">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-emerald-400">محتویات کشف رمز شده کانتینر:</span>
+                            <span class="text-[10px] text-slate-400" id="extractedMeta"></span>
+                        </div>
+                        <div id="extractedFilesList" class="space-y-2">
+                            <!-- Decrypted items -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 3: Steganography -->
+                <div id="panel-steg" class="tab-panel hidden flex flex-col gap-5">
+                    <h3 class="text-sm md:text-lg font-bold text-pink-400 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+                        پنهان‌نگاری ساختاریافته SARC در فایل‌های تصویری (Steganography)
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Inject (Hide) Box -->
+                        <div class="bg-slate-950/50 border border-slate-800/80 p-4 md:p-5 rounded-xl flex flex-col gap-4">
+                            <h4 class="text-xs font-bold text-pink-400 border-b border-slate-900 pb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                فاز اول: تزریق و مخفی‌سازی فایل در تصویر
+                            </h4>
+                            
+                            <div>
+                                <label class="block text-[10px] md:text-[11px] text-slate-400 mb-1">۱. انتخاب تصویر میزبان اصلی (PNG, JPG, JPEG):</label>
+                                <input type="file" id="stegCoverInput" accept="image/*" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-pink-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-[10px] md:text-[11px] text-slate-400 mb-1">۲. انتخاب فایل برای مخفی‌سازی:</label>
+                                <input type="file" id="stegSecretInput" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-pink-500">
+                                <span class="text-[9px] md:text-[10px] text-slate-500 mt-1 block">قالب کانتینر .sarc یا هر فایل دلخواه دیگری قابل مخفی‌سازی است.</span>
+                            </div>
+                            
+                            <button onclick="hideFileInImage()" class="mt-2 w-full py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-pink-500/10 min-h-[44px]">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                تزریق و ساخت تصویر حامل (حاوی فایل پنهان)
+                            </button>
+                        </div>
+
+                        <!-- Extract Box -->
+                        <div class="bg-slate-950/50 border border-slate-800/80 p-4 md:p-5 rounded-xl flex flex-col gap-4">
+                            <h4 class="text-xs font-bold text-pink-400 border-b border-slate-900 pb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                فاز دوم: استخراج و رمزگشایی فایل از تصویر
+                            </h4>
+                            
+                            <div>
+                                <label class="block text-[10px] md:text-[11px] text-slate-400 mb-1">۱. انتخاب تصویر حامل (دارای ساختار مخفی SARC):</label>
+                                <input type="file" id="stegCarrierInput" accept="image/*" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-pink-500">
+                            </div>
+                            
+                            <div class="pt-4 flex-1 flex flex-col justify-end">
+                                <button onclick="extractFileFromImage()" class="w-full py-3 bg-slate-850 hover:bg-slate-800 border border-slate-700 text-pink-400 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[44px]">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                    کشف اطلاعات و بازنشانی فایل اصلی
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 4: Text Crypto -->
+                <div id="panel-text-crypt" class="tab-panel hidden flex flex-col gap-4">
+                    <h3 class="text-sm md:text-lg font-bold text-indigo-400 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        امن‌ساز متون و کانال‌های انتقال پیام (Text Encryption Suite)
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Raw Input -->
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">متن خام یا رمزگذاری شده را وارد کنید:</label>
+                            <textarea id="textContent" rows="5" class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-sm focus:border-indigo-500 focus:outline-none transition-colors text-right" placeholder="برای قفل کردن یا باز کردن متن، متن خود را در این جعبه بنویسید..."></textarea>
+                        </div>
+                        <!-- Output -->
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">خروجی عملیات محافظتی:</label>
+                            <textarea id="textResult" rows="5" readonly class="w-full bg-slate-950/30 border border-slate-800 rounded-xl p-3 text-sm text-indigo-300 font-mono focus:outline-none text-left" placeholder="خروجی رمزنگاری شده با پسوند امنیتی متون به اینجا منتقل می‌شود..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 justify-end">
+                        <button onclick="processText('enc')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 min-h-[40px]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            رمزنگاری متن
+                        </button>
+                        <button onclick="processText('dec')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 border border-slate-700 min-h-[40px]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                            رمزگشایی متن
+                        </button>
+                        <button onclick="copyToClipboard('textResult')" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 min-h-[40px]">
+                            کپی خروجی
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Shared Password & Executing Area inside Dashboard Card -->
+                <div class="mt-8 pt-6 border-t border-slate-800/80">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1">رمز عبور امنیتی (شاه‌کلید عملیات رمزنگاری / پنهان‌نگاری):</label>
+                            <div class="relative">
+                                <input type="password" id="cryptoPassword" class="w-full bg-slate-950/85 border border-slate-800 rounded-xl py-3 px-3 pl-10 text-xs md:text-sm focus:border-blue-500 focus:outline-none transition-colors tracking-widest text-left" placeholder="••••••••••••" minheight="44">
+                                <button onclick="togglePasswordVisibility()" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                            </div>
+                            <!-- Password Strength Indicator -->
+                            <div class="mt-2 flex gap-1 items-center">
+                                <span class="text-[10px] md:text-xs text-slate-500">سختی پسورد: </span>
+                                <div class="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                    <div id="passStrengthBar" class="w-0 h-full bg-red-500 transition-all duration-300"></div>
+                                </div>
+                                <span id="passStrengthText" class="text-[10px] md:text-xs text-slate-400 font-bold">خیلی ضعیف</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Button container -->
+                        <div class="flex flex-col gap-2 justify-end h-full">
+                            <span class="text-[9px] md:text-[10px] text-slate-500 text-left md:text-right">حداقل طول کاراکتر پیشنهادی برای امنیت بالا: ۱۲ کاراکتر</span>
+                            <div id="mainActionContainer">
+                                <button id="actionBtn" onclick="runMainAction()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs md:text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 min-h-[48px]">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                    ساخت فایل رمزنگاری شده SARC
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (Settings, Self-Destruct Control, Terminal Logs) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Advanced Crypto settings & Offline Cache destruction -->
+            <div class="cyber-card rounded-2xl p-4 md:p-5 flex flex-col gap-4">
+                <h3 class="text-sm font-bold text-slate-300 border-b border-slate-800/80 pb-3 flex items-center justify-between">
+                    <span>تنظیمات پروتکل امنیتی SARC</span>
+                    <span class="text-xs text-blue-400">تنظیمات بهینه</span>
+                </h3>
+
+                <div class="space-y-4">
+                    <!-- Self Destruct Config Option -->
+                    <div class="p-3 bg-slate-950/60 rounded-xl border border-rose-950/30">
+                        <label class="block text-xs font-bold text-rose-400 mb-1 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                            تخریب خودکار آفلاین داده (Self-Destruct):
+                        </label>
+                        <select id="selfDestructConfig" onchange="updateSelfDestructSetting(this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-2 text-xs text-slate-300 focus:outline-none focus:border-rose-500">
+                            <option value="none">غیرفعال (امحاء دستی داده)</option>
+                            <option value="5">تخریب پس از ۵ دقیقه عدم فعالیت</option>
+                            <option value="15">تخریب پس از ۱۵ دقیقه عدم فعالیت</option>
+                            <option value="60">تخریب پس از ۱ ساعت عدم فعالیت</option>
+                        </select>
+                    </div>
+
+                    <!-- Iterations parameter -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">دورهای تکرار تابع کلیدسازی (KDF):</span>
+                            <span class="text-blue-400 code-font font-bold" id="kdfIterationsDisplay">500,000</span>
+                        </div>
+                        <input type="range" id="kdfIterations" min="50000" max="500000" step="50000" value="500000" oninput="updateKdfIterations(this.value)" class="w-full accent-blue-500 bg-slate-900 rounded-lg appearance-none h-1.5 cursor-pointer">
+                        <span class="text-[9px] md:text-[10px] text-slate-500 leading-3 block mt-1">تعداد دور بیشتر امنیت را در برابر حملات ابرکامپیوترها افزایش داده اما زمان پردازش در موبایل را بیشتر می‌کند.</span>
+                    </div>
+
+                    <!-- Hash Alg choice -->
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">الگوریتم درهم‌سازی پایه (Hash):</label>
+                        <select id="kdfHash" onchange="updateHashSetting(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+                            <option value="SHA-512">SHA-512 (فوق امن - پیش‌فرض SARC)</option>
+                            <option value="SHA-256">SHA-256 (سریع‌تر مخصوص دستگاه‌های ضعیف)</option>
+                        </select>
+                    </div>
+
+                    <!-- Unique signature header config -->
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">امضای باینری هدر (Magic Header Signature):</label>
+                        <input type="text" id="magicHeader" value="SARC" maxlength="4" oninput="updateMagicHeader(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-3 text-xs code-font text-blue-400 tracking-wider text-center" placeholder="SARC">
+                        <span class="text-[9px] md:text-[10px] text-slate-500 block mt-1">تغییر بایت‌های هدر باعث می‌شود نرم‌افزارهای تحلیل فایل متوجه باینری SARC نشوند.</span>
+                    </div>
+
+                    <!-- Manual Destruction Actions -->
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                        <button onclick="wipeAllCacheAndLogs()" class="py-2 px-1 bg-rose-900/50 hover:bg-rose-900 border border-rose-800 text-rose-100 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 min-h-[40px]">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            امحاء آنی داده‌ها
+                        </button>
+                        <button onclick="clearOnlyLogs()" class="py-2 px-1 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 min-h-[40px]">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            پاک‌کردن لاگ‌ها
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Terminal Console (Live Process Logs) -->
+            <div class="cyber-card rounded-2xl p-4 md:p-5 flex flex-col gap-3 flex-1 min-h-[300px]">
+                <div class="flex justify-between items-center border-b border-slate-800/80 pb-3">
+                    <h3 class="text-xs md:text-sm font-bold text-slate-300 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded bg-indigo-500"></span>
+                        کنسول پایش لحظه‌ای و لاگ امنیتی
+                    </h3>
+                </div>
+
+                <!-- Logs Stream -->
+                <div id="logsContainer" class="flex-1 overflow-y-auto max-h-[250px] space-y-1.5 code-font text-[10px] md:text-[11px] text-slate-400 pr-1 select-none">
+                    <!-- Logs populated dynamically -->
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-950 bg-slate-950/90 px-6 py-4 text-center text-[10px] md:text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+            <span>حقوق نرم‌افزار برای الف.ط بسیج نمین محفوظ و غیرقابل شنود در بستر اینترنت می‌باشد .  ©</span>
+            <span class="text-slate-600">طراحی و توسعه : Ami.Esk</span>
+        </div>
+    </footer>
+
+    <!-- JS Logic, IndexedDB offline cache, and Cryptography Protocol Implementation -->
+    <script>
+        // Global variables
+        let selectedFiles = [];
+        let loadedSarcFile = null;
+        let currentTab = 'file-enc';
+        let entropyCollected = 0;
+        const maxEntropy = 150; 
+        let entropyBytes = new Uint8Array(32);
+
+        // Security Self-Destruct Config
+        let selfDestructInterval = null;
+        let lastUserActivityTime = Date.now();
+        let currentDestructMinutes = "none";
+        let countdownSeconds = 0;
+
+        // Custom Toast Pop-up System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = "toast-animate flex items-center gap-3 px-4 py-3.5 rounded-xl border text-xs font-bold shadow-2xl backdrop-blur-md pointer-events-auto transition-all duration-300";
+            
+            let icon = '';
+            if (type === 'success') {
+                toast.className += " bg-emerald-950/90 border-emerald-500/50 text-emerald-400";
+                icon = `<svg class="w-5 h-5 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+            } else if (type === 'error') {
+                toast.className += " bg-rose-950/90 border-rose-500/50 text-rose-400";
+                icon = `<svg class="w-5 h-5 shrink-0 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+            } else if (type === 'warning') {
+                toast.className += " bg-amber-950/90 border-amber-500/50 text-amber-400";
+                icon = `<svg class="w-5 h-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+            } else {
+                toast.className += " bg-slate-950/95 border-slate-800 text-slate-300";
+                icon = `<svg class="w-5 h-5 shrink-0 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+            }
+
+            toast.innerHTML = `${icon}<span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
+
+            // Audio cues for accessibility & security alert feedback
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                if (type === 'error') {
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === 'success') {
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                }
+            } catch (e) {}
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // -------------------------------------------------------------
+        // SECURE INDEXEDDB OFFLINE LOCAL STORAGE INTERFACE
+        // -------------------------------------------------------------
+        let dbInstance = null;
+        function initSecureDB() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open('SARCSecureStore', 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings');
+                    }
+                    if (!db.objectStoreNames.contains('logs')) {
+                        db.createObjectStore('logs', { autoIncrement: true });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(true);
+                };
+                request.onerror = () => {
+                    showToast('خطا در راه‌اندازی دیتابیس امن داخلی مرورگر', 'error');
+                    resolve(false);
+                };
+            });
+        }
+
+        function saveSetting(key, val) {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction('settings', 'readwrite');
+            tx.objectStore('settings').put(val, key);
+        }
+
+        function getSetting(key) {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve(null);
+                const tx = dbInstance.transaction('settings', 'readonly');
+                const req = tx.objectStore('settings').get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        function addOfflineLog(logData) {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction('logs', 'readwrite');
+            tx.objectStore('logs').add(logData);
+        }
+
+        function getAllOfflineLogs() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve([]);
+                const tx = dbInstance.transaction('logs', 'readonly');
+                const req = tx.objectStore('logs').getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        // Initialize state, offline settings and logs loading
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initSecureDB();
+            await loadSavedSettings();
+            await loadLogsHistory();
+            startSelfDestructMonitor();
+            addLog('[SYSTEM] موتور امنیتی SARC آماده به کار شد.', 'system');
+        });
+
+        // Track user activity on mobile and desktop
+        const resetActivityTimer = () => {
+            lastUserActivityTime = Date.now();
+        };
+        ['click', 'touchstart', 'mousemove', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, resetActivityTimer, { passive: true });
+        });
+
+        // -------------------------------------------------------------
+        // SETTINGS & LOGGING ACTIONS
+        // -------------------------------------------------------------
+        async function loadSavedSettings() {
+            const savedIter = await getSetting('kdfIterations');
+            const savedHash = await getSetting('kdfHash');
+            const savedMagic = await getSetting('magicHeader');
+            const savedDestruct = await getSetting('selfDestructMinutes');
+
+            if (savedIter) {
+                document.getElementById('kdfIterations').value = savedIter;
+                document.getElementById('kdfIterationsDisplay').innerText = Number(savedIter).toLocaleString();
+            }
+            if (savedHash) {
+                document.getElementById('kdfHash').value = savedHash;
+            }
+            if (savedMagic) {
+                document.getElementById('magicHeader').value = savedMagic;
+            }
+            if (savedDestruct) {
+                document.getElementById('selfDestructConfig').value = savedDestruct;
+                currentDestructMinutes = savedDestruct;
+            }
+        }
+
+        async function loadLogsHistory() {
+            const container = document.getElementById('logsContainer');
+            const savedLogs = await getAllOfflineLogs();
+            if (savedLogs.length > 0) {
+                savedLogs.forEach(item => {
+                    renderLogHTML(item.text, item.type, item.time);
+                });
+            } else {
+                addLog('[INFO] آماده برای رمزنگاری کلاینت‌ساید با الگوریتم‌های AES-GCM و PBKDF2...', 'system');
+            }
+        }
+
+        function renderLogHTML(message, type, timeStr) {
+            const logsContainer = document.getElementById('logsContainer');
+            const logItem = document.createElement('div');
+            
+            let color = 'text-slate-400';
+            if (type === 'success') color = 'text-emerald-400 font-bold';
+            if (type === 'error') color = 'text-rose-400 font-bold';
+            if (type === 'warning') color = 'text-yellow-500';
+            if (type === 'system') color = 'text-blue-400';
+
+            logItem.className = `${color} leading-relaxed break-all border-l border-slate-800 pl-2 py-0.5`;
+            logItem.innerHTML = `<span class="text-slate-600 text-[9px] md:text-[10px] mr-1">[${timeStr}]</span> ${message}`;
+            
+            logsContainer.appendChild(logItem);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function addLog(message, type = 'info') {
+            const timeStr = new Date().toLocaleTimeString('fa-IR', { hour12: false });
+            renderLogHTML(message, type, timeStr);
+            addOfflineLog({ text: message, type: type, time: timeStr });
+        }
+
+        // Real-time Setting Updates & Storage Syncing
+        function updateKdfIterations(val) {
+            document.getElementById('kdfIterationsDisplay').innerText = Number(val).toLocaleString();
+            saveSetting('kdfIterations', parseInt(val));
+        }
+
+        function updateHashSetting(val) {
+            saveSetting('kdfHash', val);
+            addLog(`[SETTINGS] تغییر الگوریتم هش پایه به ${val}`);
+        }
+
+        function updateMagicHeader(val) {
+            saveSetting('magicHeader', val);
+        }
+
+        function updateSelfDestructSetting(val) {
+            currentDestructMinutes = val;
+            saveSetting('selfDestructMinutes', val);
+            addLog(`[SETTINGS] پیکربندی خودتخریبی روی ${val === 'none' ? 'غیرفعال' : val + ' دقیقه'} تنظیم شد.`, 'warning');
+            showToast('تنظیم خودتخریبی ذخیره شد', 'info');
+        }
+
+        // Self Destruct Monitor loop
+        function startSelfDestructMonitor() {
+            if (selfDestructInterval) clearInterval(selfDestructInterval);
+            selfDestructInterval = setInterval(() => {
+                if (currentDestructMinutes === "none") {
+                    document.getElementById('destructBadge').classList.add('hidden');
+                    return;
+                }
+
+                const elapsedMs = Date.now() - lastUserActivityTime;
+                const limitMs = parseInt(currentDestructMinutes) * 60 * 1000;
+                const remainingMs = Math.max(0, limitMs - elapsedMs);
+
+                if (remainingMs <= 0) {
+                    wipeAllCacheAndLogs();
+                    showToast('عملیات خودتخریبی کدهای کش با موفقیت انجام شد.', 'error');
+                } else {
+                    document.getElementById('destructBadge').classList.remove('hidden');
+                    document.getElementById('destructBadge').classList.add('flex');
+                    
+                    const seconds = Math.floor(remainingMs / 1000);
+                    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const s = (seconds % 60).toString().padStart(2, '0');
+                    document.getElementById('destructCountdown').innerText = `${m}:${s}`;
+                }
+            }, 1000);
+        }
+
+        // Cache Deletion Operations
+        function clearOnlyLogs() {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction('logs', 'readwrite');
+            tx.objectStore('logs').clear();
+            document.getElementById('logsContainer').innerHTML = `<div class="text-slate-500">[SYSTEM] تمام سوابق لاگ کلاینت پاک شدند.</div>`;
+            showToast('لاگ‌ها با موفقیت پاک شدند.', 'success');
+        }
+
+        function wipeAllCacheAndLogs() {
+            if (!dbInstance) return;
+            
+            // Wipe IndexedDB content
+            const tx1 = dbInstance.transaction('settings', 'readwrite');
+            tx1.objectStore('settings').clear();
+            const tx2 = dbInstance.transaction('logs', 'readwrite');
+            tx2.objectStore('logs').clear();
+
+            // Clear RAM variables
+            selectedFiles = [];
+            loadedSarcFile = null;
+            document.getElementById('cryptoPassword').value = '';
+            document.getElementById('textContent').value = '';
+            document.getElementById('textResult').value = '';
+            document.getElementById('stegCoverInput').value = '';
+            document.getElementById('stegSecretInput').value = '';
+            document.getElementById('stegCarrierInput').value = '';
+            document.getElementById('sarcFileInput').value = '';
+            document.getElementById('fileInput').value = '';
+            
+            updateFilesListUI();
+            
+            // Reset UI configurations
+            document.getElementById('kdfIterations').value = 500000;
+            document.getElementById('kdfIterationsDisplay').innerText = "500,000";
+            document.getElementById('kdfHash').value = "SHA-512";
+            document.getElementById('magicHeader').value = "SARC";
+            document.getElementById('selfDestructConfig').value = "none";
+            currentDestructMinutes = "none";
+            document.getElementById('destructBadge').classList.add('hidden');
+
+            document.getElementById('logsContainer').innerHTML = `<div class="text-rose-500 font-bold">[CRITICAL] کانتینرهای کش موقت و تاریخچه به صورت فیزیکی امحاء شدند.</div>`;
+            showToast('تمامی داده‌ها و کش با موفقیت تخریب و نابود شدند.', 'success');
+        }
+
+        // Track entropy based on mouse or touches
+        function mixEntropy(val) {
+            if (entropyCollected < maxEntropy) {
+                entropyCollected++;
+                const percentage = Math.min(100, Math.floor((entropyCollected / maxEntropy) * 100));
+                document.getElementById('entropyProgress').innerText = percentage + '%';
+                
+                const idx = entropyCollected % 32;
+                entropyBytes[idx] = (entropyBytes[idx] ^ val) & 255;
+
+                if (entropyCollected === maxEntropy) {
+                    addLog('[SUCCESS] آنتروپی محلی با موفقیت تجمیع و دانه تصادفی تولید شد.', 'success');
+                    document.getElementById('entropyProgress').classList.remove('text-blue-400');
+                    document.getElementById('entropyProgress').classList.add('text-emerald-400');
+                    showToast('تولید کلید با موفقیت بر اساس آنتروپی محیطی تنظیم شد.', 'success');
+                }
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            mixEntropy(e.clientX ^ e.clientY);
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches[0]) {
+                mixEntropy(e.touches[0].clientX ^ e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        // Switch Workspace Tabs
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 text-slate-400 hover:text-white min-h-[44px]";
+            });
+            
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+            
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            const activePanel = document.getElementById(`panel-${tabId}`);
+            const actionBtn = document.getElementById('actionBtn');
+            
+            activePanel.classList.remove('hidden');
+
+            if (tabId === 'file-enc') {
+                activeBtn.className = "tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 bg-blue-600 text-white min-h-[44px]";
+                actionBtn.className = "w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs md:text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 min-h-[48px]";
+                actionBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> ساخت کانتینر رمزنگاری شده SARC`;
+                document.getElementById('mainActionContainer').classList.remove('hidden');
+                addLog('[TAB] ورود به بخش رمزگذاری و ساخت آرشیو کانتینر SARC.', 'system');
+            } else if (tabId === 'file-dec') {
+                activeBtn.className = "tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 bg-emerald-600 text-white min-h-[44px]";
+                actionBtn.className = "w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs md:text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 min-h-[48px]";
+                actionBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg> رمزگشایی و استخراج کانتینر SARC`;
+                document.getElementById('mainActionContainer').classList.remove('hidden');
+                addLog('[TAB] ورود به بخش بازگشایی و تخلیه آرشیوهای اختصاصی SARC.', 'system');
+            } else if (tabId === 'steg') {
+                activeBtn.className = "tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 bg-pink-600 text-white min-h-[44px]";
+                document.getElementById('mainActionContainer').classList.add('hidden');
+                addLog('[TAB] ورود به بخش پنهان‌نگاری فایل در لایه‌های تصویر (Steganography).', 'system');
+            } else {
+                activeBtn.className = "tab-btn py-2.5 text-[11px] md:text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 bg-indigo-600 text-white min-h-[44px]";
+                document.getElementById('mainActionContainer').classList.add('hidden');
+                addLog('[TAB] ورود به بخش قفل‌گذاری و فاش‌سازی متون امنیتی.', 'system');
+            }
+        }
+
+        // Toggle Password Input type
+        function togglePasswordVisibility() {
+            const el = document.getElementById('cryptoPassword');
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        // Handle Password Strength calculation
+        document.getElementById('cryptoPassword').addEventListener('input', function(e) {
+            const password = e.target.value;
+            let score = 0;
+            if (password.length >= 6) score += 20;
+            if (password.length >= 12) score += 20;
+            if (/[A-Z]/.test(password)) score += 20;
+            if (/[0-9]/.test(password)) score += 20;
+            if (/[^A-Za-z0-9]/.test(password)) score += 20;
+
+            const bar = document.getElementById('passStrengthBar');
+            const txt = document.getElementById('passStrengthText');
+            
+            bar.style.width = score + '%';
+            if (score <= 40) {
+                bar.className = 'w-0 h-full bg-rose-500 transition-all duration-300';
+                txt.innerText = 'خیلی ضعیف';
+                txt.className = 'text-xs text-rose-500 font-bold';
+            } else if (score <= 80) {
+                bar.className = 'w-0 h-full bg-yellow-500 transition-all duration-300';
+                txt.innerText = 'متوسط';
+                txt.className = 'text-xs text-yellow-500 font-bold';
+            } else {
+                bar.className = 'w-0 h-full bg-emerald-500 transition-all duration-300';
+                txt.innerText = 'بسیار قوی و غیرقابل نفوذ';
+                txt.className = 'text-xs text-emerald-500 font-bold';
+            }
+        });
+
+        // -------------------------------------------------------------
+        // DRAG & DROP FOR FILE ENCRYPT TAB
+        // -------------------------------------------------------------
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-blue-500', 'bg-blue-950/10');
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('border-blue-500', 'bg-blue-950/10');
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-blue-500', 'bg-blue-950/10');
+            handleFileSelection(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelection(e.target.files);
+        });
+
+        function handleFileSelection(files) {
+            for (let file of files) {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                    addLog(`[FILE] فایل انتخاب شد: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+                }
+            }
+            updateFilesListUI();
+            showToast('فایل(ها) با موفقیت انتخاب شدند.', 'success');
+        }
+
+        function removeFile(index) {
+            addLog(`[FILE] حذف فایل از آرشیو: ${selectedFiles[index].name}`);
+            selectedFiles.splice(index, 1);
+            updateFilesListUI();
+        }
+
+        function updateFilesListUI() {
+            const container = document.getElementById('selectedFilesContainer');
+            const list = document.getElementById('selectedFilesList');
+            
+            if (selectedFiles.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            list.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const sizeKb = (file.size / 1024).toFixed(1);
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-900 px-3 py-2 rounded border border-slate-800">
+                        <div class="flex items-center gap-2 max-w-[70%]">
+                            <span class="text-xs font-mono text-slate-300 truncate">${file.name}</span>
+                            <span class="text-[10px] text-slate-500 shrink-0">(${sizeKb} KB)</span>
+                        </div>
+                        <button onclick="removeFile(${index})" class="text-xs text-rose-500 hover:text-rose-400 font-bold transition-colors min-h-[30px] px-2">حذف</button>
+                    </div>
+                `;
+            });
+        }
+
+        // -------------------------------------------------------------
+        // DRAG & DROP FOR SARC DECRYPT TAB
+        // -------------------------------------------------------------
+        const decDropzone = document.getElementById('dec-dropzone');
+        const sarcFileInput = document.getElementById('sarcFileInput');
+
+        decDropzone.addEventListener('click', () => sarcFileInput.click());
+        decDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            decDropzone.classList.add('border-emerald-500', 'bg-emerald-950/10');
+        });
+        decDropzone.addEventListener('dragleave', () => {
+            decDropzone.classList.remove('border-emerald-500', 'bg-emerald-950/10');
+        });
+        decDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            decDropzone.classList.remove('border-emerald-500', 'bg-emerald-950/10');
+            if (e.dataTransfer.files.length > 0) {
+                handleSarcSelection(e.dataTransfer.files[0]);
+            }
+        });
+        sarcFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleSarcSelection(e.target.files[0]);
+            }
+        });
+
+        function handleSarcSelection(file) {
+            loadedSarcFile = file;
+            const sizeKb = (file.size / 1024).toFixed(1);
+            document.getElementById('sarcFileInfo').innerHTML = `فایل بارگذاری شده: <strong class="text-emerald-400 font-mono">${file.name}</strong> (${sizeKb} KB)`;
+            addLog(`[SARC] فایل کانتینر شناسایی شد: ${file.name}. جهت آغاز استخراج، پسورد را وارد کنید.`, 'success');
+            showToast('کانتینر SARC بارگذاری شد.', 'success');
+        }
+
+        // -------------------------------------------------------------
+        // WEB CRYPTO WRAPPER ENGINE
+        // -------------------------------------------------------------
+        async function deriveKeyFromPassword(password, salt, iterations, hashAlgorithm) {
+            addLog('[KEYDERIVATION] استارت عملیات کلیدسازی موازی...');
+            const encoder = new TextEncoder();
+            const passwordBytes = encoder.encode(password);
+            
+            const baseKey = await window.crypto.subtle.importKey(
+                "raw",
+                passwordBytes,
+                "PBKDF2",
+                false,
+                ["deriveKey"]
+            );
+
+            addLog(`[KEYDERIVATION] مشتق‌سازی کلید با ${iterations.toLocaleString()} دور محاسبات سنگین ریاضی...`, 'warning');
+            
+            const derivedKey = await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: iterations,
+                    hash: hashAlgorithm
+                },
+                baseKey,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+
+            addLog('[KEYDERIVATION] کلید نهایی AES-GCM-256 با موفقیت تولید شد.', 'success');
+            return derivedKey;
+        }
+
+        // -------------------------------------------------------------
+        // CREATING CUSTOM PROTOCOL BINARY (ARCHIVE + ENCRYPT)
+        // -------------------------------------------------------------
+        async function encryptFilesToSarc() {
+            const password = document.getElementById('cryptoPassword').value;
+            if (!password) {
+                addLog('[ERR] رمز عبور کانتینر نمی‌تواند خالی باشد.', 'error');
+                showToast('خطا: رمز عبور الزامی است.', 'error');
+                return;
+            }
+            if (selectedFiles.length === 0) {
+                addLog('[ERR] حداقل یک فایل جهت ساخت کانتینر انتخاب کنید.', 'error');
+                showToast('خطا: هیچ فایلی انتخاب نشده است.', 'error');
+                return;
+            }
+
+            try {
+                const iterations = parseInt(document.getElementById('kdfIterations').value);
+                const hashAlg = document.getElementById('kdfHash').value;
+                const magicInput = document.getElementById('magicHeader').value || "SARC";
+                
+                addLog('======================================');
+                addLog(`[SARC ENGINE] آغاز فرآیند همبندسازی آرشیو اختصاصی با هدر ${magicInput}`);
+                
+                let metadataFiles = [];
+                let payloadArrayBuffers = [];
+                let currentOffset = 0;
+
+                for (let file of selectedFiles) {
+                    addLog(`[ARCHIVE] خواندن باینری فایل: ${file.name}`);
+                    const arrayBuffer = await file.arrayBuffer();
+                    payloadArrayBuffers.push(arrayBuffer);
+                    
+                    metadataFiles.push({
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        offset: currentOffset,
+                        length: arrayBuffer.byteLength
+                    });
+
+                    currentOffset += arrayBuffer.byteLength;
+                }
+
+                const concatenatedPayload = new Uint8Array(currentOffset);
+                let payloadWritePos = 0;
+                for (let buf of payloadArrayBuffers) {
+                    concatenatedPayload.set(new Uint8Array(buf), payloadWritePos);
+                    payloadWritePos += buf.byteLength;
+                }
+
+                addLog(`[ARCHIVE] تمام فایل‌ها یکپارچه‌سازی شدند. مجموع جریان بایت: ${concatenatedPayload.byteLength} بایت.`);
+
+                const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                const ivMetadata = window.crypto.getRandomValues(new Uint8Array(12));
+                const ivPayload = window.crypto.getRandomValues(new Uint8Array(12));
+
+                const derivedKey = await deriveKeyFromPassword(password, salt, iterations, hashAlg);
+
+                addLog('[CRYPTO] آغاز رمزنگاری اطلاعات متادیتا کانتینر...');
+                const metadataJsonBytes = new TextEncoder().encode(JSON.stringify({ files: metadataFiles }));
+                
+                const encryptedMetadata = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: ivMetadata },
+                    derivedKey,
+                    metadataJsonBytes
+                );
+                addLog('[CRYPTO] متادیتای کانتینر با تگ تصدیق AES-GCM رمزگذاری شد.', 'success');
+
+                addLog('[CRYPTO] قفل‌گذاری سراسری جریان داده‌های آرشیو با کلید مشتق‌شده...');
+                const encryptedPayload = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: ivPayload },
+                    derivedKey,
+                    concatenatedPayload
+                );
+                addLog('[CRYPTO] فایل‌های آرشیو با موفقیت رمزنگاری شدند.', 'success');
+
+                addLog('[PACKAGER] بسته‌بندی هدر اختصاصی و ساختار باینری کانتینر SARC...');
+                const magicBytes = new TextEncoder().encode(magicInput.substring(0, 4).padEnd(4, ' '));
+                const versionByte = new Uint8Array([1]);
+                
+                const iterArray = new Uint8Array(4);
+                new DataView(iterArray.buffer).setUint32(0, iterations, false); 
+                
+                const hashByte = new Uint8Array([hashAlg === 'SHA-512' ? 1 : 0]);
+                
+                const metaLenArray = new Uint8Array(4);
+                new DataView(metaLenArray.buffer).setUint32(0, encryptedMetadata.byteLength, false);
+
+                const totalBinarySize = 4 + 1 + 4 + 1 + 16 + 12 + 12 + 4 + encryptedMetadata.byteLength + encryptedPayload.byteLength;
+                const finalSarcBinary = new Uint8Array(totalBinarySize);
+
+                let ptr = 0;
+                finalSarcBinary.set(magicBytes, ptr); ptr += 4;
+                finalSarcBinary.set(versionByte, ptr); ptr += 1;
+                finalSarcBinary.set(iterArray, ptr); ptr += 4;
+                finalSarcBinary.set(hashByte, ptr); ptr += 1;
+                finalSarcBinary.set(salt, ptr); ptr += 16;
+                finalSarcBinary.set(ivMetadata, ptr); ptr += 12;
+                finalSarcBinary.set(ivPayload, ptr); ptr += 12;
+                finalSarcBinary.set(metaLenArray, ptr); ptr += 4;
+                finalSarcBinary.set(new Uint8Array(encryptedMetadata), ptr); ptr += encryptedMetadata.byteLength;
+                finalSarcBinary.set(new Uint8Array(encryptedPayload), ptr);
+
+                addLog(`[SUCCESS] کانتینر با موفقیت کامپایل شد. حجم کل کانتینر: ${(totalBinarySize / 1024).toFixed(1)} KB`, 'success');
+                showToast('کانتینر اختصاصی SARC ساخته شد.', 'success');
+
+                const blob = new Blob([finalSarcBinary], { type: 'application/octet-stream' });
+                const sarcUrl = URL.createObjectURL(blob);
+                
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = sarcUrl;
+                downloadAnchor.download = `${selectedFiles[0].name.split('.')[0] || 'secure'}_archive.sarc`;
+                downloadAnchor.click();
+                
+                addLog('[SYSTEM] کانتینر اختصاصی دانلود و ذخیره شد.', 'success');
+                URL.revokeObjectURL(sarcUrl);
+                
+            } catch (err) {
+                addLog(`[ERR] خطا در فرآیند رمزگذاری: ${err.message}`, 'error');
+                showToast('خطا در انجام عملیات رمزنگاری', 'error');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // PARSING & DECRYPTING CUSTOM PROTOCOL BINARY (DECRYPTION + EXTRACT)
+        // -------------------------------------------------------------
+        async function decryptSarc() {
+            const password = document.getElementById('cryptoPassword').value;
+            if (!password) {
+                addLog('[ERR] رمز عبور کانتینر جهت رمزگشایی الزامی است.', 'error');
+                showToast('خطا: رمز عبور را وارد کنید.', 'error');
+                return;
+            }
+            if (!loadedSarcFile) {
+                addLog('[ERR] لطفاً ابتدا یک فایل با پسوند .sarc بارگذاری کنید.', 'error');
+                showToast('خطا: فایل SARC پیدا نشد.', 'error');
+                return;
+            }
+
+            try {
+                addLog('======================================');
+                addLog('[SARC DECRYPT] پردازش ساختار باینری فایل ورودی...');
+                const sarcArrayBuffer = await loadedSarcFile.arrayBuffer();
+                const sarcBytes = new Uint8Array(sarcArrayBuffer);
+
+                if (sarcBytes.length < 54) { 
+                    addLog('[ERR] حجم فایل بسیار کوتاه است و هدر استاندارد SARC را ندارد.', 'error');
+                    showToast('خطا: فایل نامعتبر است.', 'error');
+                    return;
+                }
+
+                let ptr = 0;
+                const magicInput = document.getElementById('magicHeader').value || "SARC";
+                const expectedMagic = magicInput.substring(0, 4).padEnd(4, ' ');
+                const fileMagic = new TextDecoder().decode(sarcBytes.slice(0, 4));
+                
+                addLog(`[HEADER] امضای بایت جادویی فایل: ${fileMagic} (امضای مورد انتظار سیستم: ${expectedMagic})`);
+                if (fileMagic !== expectedMagic) {
+                    addLog('[WARN] بایت‌های امضای فایل با تنظیمات تطابق ندارد، ممکن است عملیات با شکست مواجه شود.', 'warning');
+                    showToast('هشدار: عدم تطابق امضای هدر فایل.', 'warning');
+                }
+                ptr += 4;
+
+                const version = sarcBytes[ptr]; ptr += 1;
+                addLog(`[HEADER] نسخه قالب سازگار: ${version}`);
+
+                const view = new DataView(sarcBytes.buffer);
+                const iterations = view.getUint32(ptr, false); ptr += 4;
+                addLog(`[HEADER] دفعات دور محاسباتی اعمال شده: ${iterations.toLocaleString()}`);
+
+                const hashId = sarcBytes[ptr]; ptr += 1;
+                const hashAlg = hashId === 1 ? 'SHA-512' : 'SHA-256';
+                addLog(`[HEADER] الگوریتم درهم‌سازی ردیابی شده: ${hashAlg}`);
+
+                const salt = sarcBytes.slice(ptr, ptr + 16); ptr += 16;
+                const ivMetadata = sarcBytes.slice(ptr, ptr + 12); ptr += 12;
+                const ivPayload = sarcBytes.slice(ptr, ptr + 12); ptr += 12;
+
+                const encryptedMetadataLength = view.getUint32(ptr, false); ptr += 4;
+                addLog(`[HEADER] حجم متادیتای قفل شده: ${encryptedMetadataLength} بایت`);
+
+                const encryptedMetadataBytes = sarcBytes.slice(ptr, ptr + encryptedMetadataLength); ptr += encryptedMetadataLength;
+                const encryptedPayloadBytes = sarcBytes.slice(ptr);
+
+                const derivedKey = await deriveKeyFromPassword(password, salt, iterations, hashAlg);
+
+                addLog('[CRYPTO] احراز هویت و رمزگشایی بلاک متادیتا...');
+                let decryptedMetadata;
+                try {
+                    const decryptedMetadataBytes = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: ivMetadata },
+                        derivedKey,
+                        encryptedMetadataBytes
+                    );
+                    decryptedMetadata = JSON.parse(new TextDecoder().decode(decryptedMetadataBytes));
+                    addLog('[CRYPTO] بلاک متادیتا احراز هویت شد و با موفقیت تفکیک گردید.', 'success');
+                } catch (decError) {
+                    addLog('[ERR] رمز عبور نامعتبر است یا کانتینر مخدوش شده است (خطای احراز هویت AES-GCM-Tag)', 'error');
+                    showToast('خطا: رمز عبور اشتباه است یا فایل دستکاری شده است.', 'error');
+                    return;
+                }
+
+                addLog('[CRYPTO] رمزگشایی بایت‌های همبند فایل‌ها...');
+                const decryptedPayloadBytes = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: ivPayload },
+                    derivedKey,
+                    encryptedPayloadBytes
+                );
+                addLog('[CRYPTO] رمزگشایی سراسری کانتینر با موفقیت کامل شد.', 'success');
+
+                const payloadUint8Array = new Uint8Array(decryptedPayloadBytes);
+
+                const extractedSection = document.getElementById('extractedSection');
+                const extractedFilesList = document.getElementById('extractedFilesList');
+                const extractedMeta = document.getElementById('extractedMeta');
+
+                extractedFilesList.innerHTML = '';
+                extractedSection.classList.remove('hidden');
+                
+                const fileCount = decryptedMetadata.files.length;
+                extractedMeta.innerText = `مجموعاً ${fileCount} فایل یافت شد`;
+
+                decryptedMetadata.files.forEach(fileInfo => {
+                    const fileBytes = payloadUint8Array.slice(fileInfo.offset, fileInfo.offset + fileInfo.length);
+                    const fileBlob = new Blob([fileBytes], { type: fileInfo.type });
+                    const fileUrl = URL.createObjectURL(fileBlob);
+
+                    const sizeKb = (fileInfo.size / 1024).toFixed(1);
+
+                    const fileRow = document.createElement('div');
+                    fileRow.className = "flex justify-between items-center bg-slate-900 border border-slate-800 p-3 rounded-lg";
+                    fileRow.innerHTML = `
+                        <div class="flex items-center gap-2 max-w-[65%]">
+                            <span class="text-xs font-mono text-emerald-400 font-bold truncate">${fileInfo.name}</span>
+                            <span class="text-[10px] text-slate-500 shrink-0">(${sizeKb} KB)</span>
+                        </div>
+                        <a href="${fileUrl}" download="${fileInfo.name}" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-100 rounded text-xs transition-colors flex items-center gap-1 min-h-[36px] shrink-0">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            دریافت
+                        </a>
+                    `;
+                    extractedFilesList.appendChild(fileRow);
+                    addLog(`[EXTRACT] فایل قابل دانلود آماده شد: ${fileInfo.name}`);
+                });
+
+                addLog('[SUCCESS] تخلیه کانتینر با موفقیت کامل شد.', 'success');
+                showToast('کانتینر SARC با موفقیت بازگشایی شد.', 'success');
+
+            } catch (err) {
+                addLog(`[ERR] شکست در بازیابی فایل: ${err.message}`, 'error');
+                showToast('خطای بحرانی در بازگشایی فایل', 'error');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // STEGANOGRAPHY: HIDE SECRET FILE IN IMAGE (EOF Appending Algorithm)
+        // -------------------------------------------------------------
+        async function hideFileInImage() {
+            const password = document.getElementById('cryptoPassword').value;
+            const coverFile = document.getElementById('stegCoverInput').files[0];
+            const secretFile = document.getElementById('stegSecretInput').files[0];
+
+            if (!password) {
+                addLog('[ERR] برای پنهان‌نگاری، وارد کردن رمز عبور الزامی است.', 'error');
+                showToast('خطا: پسورد را وارد کنید.', 'error');
+                return;
+            }
+            if (!coverFile) {
+                addLog('[ERR] لطفاً تصویر میزبان اصلی را انتخاب کنید.', 'error');
+                showToast('خطا: تصویر میزبان انتخاب نشده است.', 'error');
+                return;
+            }
+            if (!secretFile) {
+                addLog('[ERR] لطفاً فایلی که قصد مخفی‌سازی آن را دارید انتخاب کنید.', 'error');
+                showToast('خطا: فایل مخفی‌سازی انتخاب نشده است.', 'error');
+                return;
+            }
+
+            try {
+                addLog('======================================');
+                addLog(`[STEGANOGRAPHY] آغاز فرآیند جاسازی فوق‌امنیتی فایل "${secretFile.name}" در تصویر میزبان...`);
+
+                const iterations = parseInt(document.getElementById('kdfIterations').value);
+                const hashAlg = document.getElementById('kdfHash').value;
+
+                addLog('[STEG] بارگذاری باینری فایل راز و تصویر میزبان...');
+                const coverBuffer = await coverFile.arrayBuffer();
+                const secretBuffer = await secretFile.arrayBuffer();
+
+                const coverBytes = new Uint8Array(coverBuffer);
+                const secretBytes = new Uint8Array(secretBuffer);
+
+                const filenameEncoder = new TextEncoder();
+                const filenameBytes = filenameEncoder.encode(secretFile.name);
+                const mimeBytes = filenameEncoder.encode(secretFile.type || 'application/octet-stream');
+
+                if (filenameBytes.length > 255 || mimeBytes.length > 255) {
+                    addLog('[ERR] طول نام فایل یا فرمت آن بسیار بزرگتر از استاندارد است.', 'error');
+                    showToast('خطا: نام فایل بسیار طولانی است.', 'error');
+                    return;
+                }
+
+                const payloadSize = 1 + filenameBytes.length + 1 + mimeBytes.length + secretBytes.length;
+                const rawPayload = new Uint8Array(payloadSize);
+
+                let offset = 0;
+                rawPayload[offset] = filenameBytes.length; offset += 1;
+                rawPayload.set(filenameBytes, offset); offset += filenameBytes.length;
+                rawPayload[offset] = mimeBytes.length; offset += 1;
+                rawPayload.set(mimeBytes, offset); offset += mimeBytes.length;
+                rawPayload.set(secretBytes, offset);
+
+                const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const derivedKey = await deriveKeyFromPassword(password, salt, iterations, hashAlg);
+
+                addLog('[STEG-CRYPTO] فشرده‌سازی و قفل‌گذاری دیجیتالی داده‌ها با کلید متقارن...');
+                const encryptedPayload = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    derivedKey,
+                    rawPayload
+                );
+                const encryptedBytes = new Uint8Array(encryptedPayload);
+
+                const packageSize = 16 + 12 + encryptedBytes.length;
+                const fullPackage = new Uint8Array(packageSize);
+                fullPackage.set(salt, 0);
+                fullPackage.set(iv, 16);
+                fullPackage.set(encryptedBytes, 28);
+
+                const signatureBytes = filenameEncoder.encode("SARCSTEG"); 
+                const sizeArray = new Uint8Array(4);
+                new DataView(sizeArray.buffer).setUint32(0, packageSize, false); 
+
+                const finalSize = coverBytes.length + packageSize + 8 + 4;
+                const outputBytes = new Uint8Array(finalSize);
+
+                let writePtr = 0;
+                outputBytes.set(coverBytes, writePtr); writePtr += coverBytes.length;
+                outputBytes.set(fullPackage, writePtr); writePtr += packageSize;
+                outputBytes.set(signatureBytes, writePtr); writePtr += 8;
+                outputBytes.set(sizeArray, writePtr);
+
+                addLog(`[SUCCESS] فرآیند تزریق با موفقیت پایان یافت. حجم نهایی عکس حامل: ${(finalSize / 1024).toFixed(1)} KB`, 'success');
+                showToast('تزریق داده به تصویر حامل موفقیت‌آمیز بود.', 'success');
+
+                const blob = new Blob([outputBytes], { type: coverFile.type });
+                const downloadUrl = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = downloadUrl;
+
+                const nameParts = coverFile.name.split('.');
+                const ext = nameParts.pop();
+                anchor.download = `${nameParts.join('.')}_secured.${ext}`;
+                anchor.click();
+
+                addLog('[SYSTEM] فایل تصویری حامل با موفقیت دانلود شد.', 'success');
+                URL.revokeObjectURL(downloadUrl);
+
+            } catch (err) {
+                addLog(`[ERR] شکست در عملیات پنهان‌نگاری: ${err.message}`, 'error');
+                showToast('خطای سیستمی در پنهان‌نگاری تصویر', 'error');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // STEGANOGRAPHY: EXTRACT SECRET FILE FROM IMAGE
+        // -------------------------------------------------------------
+        async function extractFileFromImage() {
+            const password = document.getElementById('cryptoPassword').value;
+            const carrierFile = document.getElementById('stegCarrierInput').files[0];
+
+            if (!password) {
+                addLog('[ERR] برای استخراج اطلاعات، وارد کردن رمز عبور شاه‌کلید الزامی است.', 'error');
+                showToast('خطا: رمز عبور را وارد کنید.', 'error');
+                return;
+            }
+            if (!carrierFile) {
+                addLog('[ERR] لطفا تصویر حامل را انتخاب کنید.', 'error');
+                showToast('خطا: تصویر حامل انتخاب نشده است.', 'error');
+                return;
+            }
+
+            try {
+                addLog('======================================');
+                addLog(`[STEGANOGRAPHY] بازخوانی عمیق بایت‌های فایل تصویر "${carrierFile.name}"...`);
+
+                const iterations = parseInt(document.getElementById('kdfIterations').value);
+                const hashAlg = document.getElementById('kdfHash').value;
+
+                const carrierBuffer = await carrierFile.arrayBuffer();
+                const carrierBytes = new Uint8Array(carrierBuffer);
+
+                if (carrierBytes.length < 12) {
+                    addLog('[ERR] حجم فایل برای داشتن ساختار مخفی‌سازی SARC بسیار کم است.', 'error');
+                    showToast('خطا: تصویر فاقد داده امنیتی است.', 'error');
+                    return;
+                }
+
+                const view = new DataView(carrierBytes.buffer);
+                const packageSize = view.getUint32(carrierBytes.length - 4, false); 
+                
+                const sigStartIdx = carrierBytes.length - 12;
+                const decoder = new TextDecoder();
+                const signature = decoder.decode(carrierBytes.slice(sigStartIdx, sigStartIdx + 8));
+
+                addLog(`[STEG-INFO] بررسی امضای باینری انتهای فایل: "${signature}"`);
+                if (signature !== "SARCSTEG") {
+                    addLog('[ERR] خطای تحلیل ساختاری: هیچ بایت یا فایل پنهانی با امضای SARC در این فایل یافت نشد.', 'error');
+                    showToast('خطا: فاقد امضا یا ساختار پنهان‌نگاری معتبر SARCSTEG.', 'error');
+                    return;
+                }
+
+                addLog(`[STEG-INFO] پکیج مخفی با طول ${packageSize.toLocaleString()} بایت کشف شد.`);
+
+                const startIdx = carrierBytes.length - 12 - packageSize;
+                if (startIdx < 0) {
+                    addLog('[ERR] ساختار بایت‌های عکس مخدوش شده است.', 'error');
+                    showToast('خطا: ساختار فایل مخدوش است.', 'error');
+                    return;
+                }
+
+                const fullPackage = carrierBytes.slice(startIdx, startIdx + packageSize);
+                const salt = fullPackage.slice(0, 16);
+                const iv = fullPackage.slice(16, 28);
+                const encryptedBytes = fullPackage.slice(28);
+
+                const derivedKey = await deriveKeyFromPassword(password, salt, iterations, hashAlg);
+
+                addLog('[STEG-CRYPTO] رمزگشایی با استاندارد AES-GCM و تست تگ احراز هویت پیام...');
+                let rawPayload;
+                try {
+                    const decryptedBuffer = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        derivedKey,
+                        encryptedBytes
+                    );
+                    rawPayload = new Uint8Array(decryptedBuffer);
+                    addLog('[STEG-CRYPTO] رمزگشایی و اصالت‌سنجی بایت‌های مخفی موفقیت‌آمیز بود.', 'success');
+                } catch (decErr) {
+                    addLog('[ERR] رمز عبور نامعتبر است یا عکس مخدوش شده است (خطای کلید AES-GCM)', 'error');
+                    showToast('خطا: رمز عبور نامعتبر یا داده مخدوش است.', 'error');
+                    return;
+                }
+
+                let offset = 0;
+                const filenameLen = rawPayload[offset]; offset += 1;
+                const filename = decoder.decode(rawPayload.slice(offset, offset + filenameLen)); offset += filenameLen;
+                const mimeLen = rawPayload[offset]; offset += 1;
+                const mimeType = decoder.decode(rawPayload.slice(offset, offset + mimeLen)); offset += mimeLen;
+                const secretFileContent = rawPayload.slice(offset);
+
+                addLog(`[SUCCESS] فایل اصلی از لایه‌های پنهان تصویر استخراج شد!`, 'success');
+                addLog(`[INFO] نام فایل کشف‌شده: ${filename} | حجم: ${(secretFileContent.length / 1024).toFixed(1)} KB`);
+                showToast('فایل پنهان با موفقیت کشف و بازسازی شد.', 'success');
+
+                const decryptedBlob = new Blob([secretFileContent], { type: mimeType });
+                const fileUrl = URL.createObjectURL(decryptedBlob);
+                const anchor = document.createElement('a');
+                anchor.href = fileUrl;
+                anchor.download = filename;
+                anchor.click();
+
+                addLog('[SYSTEM] فایل پنهان با موفقیت دانلود و ذخیره شد.', 'success');
+                URL.revokeObjectURL(fileUrl);
+
+            } catch (err) {
+                addLog(`[ERR] شکست در فرآیند رمزگشایی پنهان‌نگاری: ${err.message}`, 'error');
+                showToast('خطای غیرمنتظره در کشف پنهان‌نگاری', 'error');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // TEXT CRYPTOGRAPHY SUITE (ENCRYPT/DECRYPT TEXT CODES)
+        // -------------------------------------------------------------
+        async function processText(mode) {
+            const password = document.getElementById('cryptoPassword').value;
+            const content = document.getElementById('textContent').value;
+
+            if (!password) {
+                addLog('[ERR] رمز عبور جهت پردازش متنی الزامی است.', 'error');
+                showToast('خطا: پسورد الزامی است.', 'error');
+                return;
+            }
+            if (!content) {
+                addLog('[ERR] لطفا ابتدا متنی را برای رمزگذاری یا رمزگشایی وارد کنید.', 'error');
+                showToast('خطا: فیلد متن خالی است.', 'error');
+                return;
+            }
+
+            try {
+                const iterations = parseInt(document.getElementById('kdfIterations').value);
+                const hashAlg = document.getElementById('kdfHash').value;
+
+                if (mode === 'enc') {
+                    addLog('--------------------------------------');
+                    addLog('[TEXT ENGINE] آغاز عملیات ساخت پیام فوق محرمانه...');
+                    
+                    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const derivedKey = await deriveKeyFromPassword(password, salt, iterations, hashAlg);
+
+                    const encoder = new TextEncoder();
+                    const textBytes = encoder.encode(content);
+
+                    const encryptedData = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv },
+                        derivedKey,
+                        textBytes
+                    );
+
+                    const totalBuffer = new Uint8Array(16 + 12 + encryptedData.byteLength);
+                    totalBuffer.set(salt, 0);
+                    totalBuffer.set(iv, 16);
+                    totalBuffer.set(new Uint8Array(encryptedData), 28);
+
+                    const base64Str = btoa(String.fromCharCode.apply(null, totalBuffer));
+                    const customFormatOutput = `-----BEGIN SARC PROTECTED TEXT-----\n${base64Str}\n-----END SARC PROTECTED TEXT-----`;
+
+                    document.getElementById('textResult').value = customFormatOutput;
+                    addLog('[SUCCESS] متن رمزگذاری شد. خروجی در باکس راست کپی قابل استفاده است.', 'success');
+                    showToast('متن با موفقیت رمزنگاری شد.', 'success');
+                } 
+                else if (mode === 'dec') {
+                    addLog('--------------------------------------');
+                    addLog('[TEXT ENGINE] آغاز کشف محتوای کانال امن متون...');
+                    
+                    let cleanBase64 = content
+                        .replace("-----BEGIN SARC PROTECTED TEXT-----", "")
+                        .replace("-----END SARC PROTECTED TEXT-----", "")
+                        .replace(/\s/g, "");
+
+                    const rawBytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+                    
+                    if (rawBytes.length < 29) {
+                        addLog('[ERR] بایت‌های پیام ورودی نامعتبر یا بیش از حد کوتاه است.', 'error');
+                        showToast('خطا: قالب متن نامعتبر است.', 'error');
+                        return;
+                    }
+
+                    const salt = rawBytes.slice(0, 16);
+                    const iv = rawBytes.slice(16, 28);
+                    const cipherBytes = rawBytes.slice(28);
+
+                    const derivedKey = await deriveKeyFromPassword(password, salt, iterations, hashAlg);
+
+                    try {
+                        const decrypted = await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: iv },
+                            derivedKey,
+                            cipherBytes
+                        );
+                        
+                        const decryptedText = new TextDecoder().decode(decrypted);
+                        document.getElementById('textResult').value = decryptedText;
+                        addLog('[SUCCESS] متن فوق محرمانه رمزگشایی شد و تایید هویت گردید.', 'success');
+                        showToast('پیام امنیتی با موفقیت فاش شد.', 'success');
+                    } catch (decErr) {
+                        addLog('[ERR] احراز هویت متن شکست خورد! رمز اشتباه یا دستکاری داده.', 'error');
+                        showToast('خطا: عدم احراز هویت یا پسورد نادرست.', 'error');
+                    }
+                }
+            } catch (err) {
+                addLog(`[ERR] شکست در انجام عملیات متنی: ${err.message}`, 'error');
+                showToast('خطای سیستمی در فرآیند رمزنگاری متنی', 'error');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // UTILITY FUNCTIONS
+        // -------------------------------------------------------------
+        function runMainAction() {
+            if (currentTab === 'file-enc') {
+                encryptFilesToSarc();
+            } else if (currentTab === 'file-dec') {
+                decryptSarc();
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const el = document.getElementById(elementId);
+            el.select();
+            document.execCommand('copy');
+            addLog('[SYSTEM] متن با موفقیت در کلیپ‌بورد کپی شد.', 'success');
+            showToast('کپی در کلیپ‌بورد انجام شد.', 'success');
+        }
+    </script>
+</body>
+</html>
